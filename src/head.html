@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Math Club Announces Its New Surprise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=STIX+Two+Text:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Sky.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Water.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/BokehShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/BokehPass.js"></script>
+<style>
+/* A treasure map has one look: aged parchment and ink on a dark table. Both themes share it. */
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+  --table:#1E140C; --paper:#E9D4A5; --paper-hi:#F4E6C3; --paper-lo:#C9A86C;
+  --ink:#3A2312; --ink-soft:#6E5130; --red:#A3231B; --sea:#2D7F8F; --gold:#D9A83A;
+  --display:"IM Fell English SC", "IM Fell English", Georgia, serif;
+  --body:"IM Fell English", Georgia, serif;
+  --math:"STIX Two Text", "Cambria Math", "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --table:#1E140C; --paper:#E9D4A5; --ink:#3A2312; }
+}
+:root[data-theme="dark"]{ --table:#1E140C; --paper:#E9D4A5; --ink:#3A2312; }
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--table);color:var(--ink);font-family:var(--body);font-size:1.15rem;line-height:1.55;overflow-x:hidden}
+body.locked{overflow:hidden;touch-action:none}
+#scene{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+main{position:relative;z-index:1}
+
+.parchment{
+  background:
+    radial-gradient(circle at 22% 18%,rgba(255,248,225,.75),transparent 55%),
+    radial-gradient(circle at 85% 88%,rgba(140,90,35,.28),transparent 45%),
+    radial-gradient(circle at 10% 95%,rgba(120,70,25,.22),transparent 40%),
+    var(--paper);
+  color:var(--ink);
+  box-shadow:0 22px 50px rgba(0,0,0,.5),inset 0 0 38px rgba(110,62,18,.45),inset 0 0 4px rgba(80,40,10,.5);
+  border-radius:4px 10px 6px 12px / 12px 4px 10px 6px;
+}
+
+.hero{height:100svh;display:grid;place-items:center;text-align:center;perspective:1100px;padding:1rem;position:relative}
+.title-wrap{transform-style:preserve-3d;will-change:transform}
+.title{font-family:var(--display);font-weight:400;margin:0;font-size:clamp(2.9rem,10.5vw,8.6rem);line-height:.92;max-width:12ch;color:var(--ink);
+  text-shadow:0 0 14px var(--paper-hi),0 0 28px var(--paper),0 0 4px var(--paper-hi)}
+.title .line{display:block}
+.title .ch{display:inline-block;opacity:0;transform:scale(1.8) rotate(-8deg);filter:blur(6px)}
+body.go .title .ch{animation:ink .7s cubic-bezier(.2,.9,.3,1) forwards;animation-delay:calc(.2s + var(--i) * 40ms)}
+@keyframes ink{to{opacity:1;transform:none;filter:none}}
+.title .line:nth-child(2){font-size:.55em;color:var(--red);margin:.15em 0}
+.hint{position:absolute;bottom:2rem;left:0;right:0;margin:auto;width:max-content;padding:.4rem 1.2rem;font-style:italic;opacity:0;transition:opacity 1s 2.2s}
+body.go .hint{opacity:1}
+
+.intro{height:240vh}
+.chapter{height:220vh;position:relative}
+.finale{height:420vh;position:relative}
+.card .eq sup{font-size:.6em}
+#fallbackMap{position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:var(--table);z-index:0}
+#correct{z-index:65;background:transparent;pointer-events:none}
+#correct .card{opacity:1;transform:rotate(-3deg);padding:1.4rem 2.2rem;animation:stampIn .5s cubic-bezier(.3,1.6,.5,1)}
+#correct h2{font-family:var(--display);font-weight:400;font-size:clamp(2.6rem,8vw,4.4rem);color:var(--red);margin:0;line-height:1}
+#correct p{margin:.3rem 0 0;font-style:italic}
+@keyframes stampIn{from{transform:scale(2.2) rotate(-12deg);opacity:0}}
+.cap{position:sticky;top:env(safe-area-inset-top,0px);height:calc(100svh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:grid;align-items:center;padding:2rem clamp(1rem,6vw,5rem);perspective:1000px;pointer-events:none}
+.chapter.right .cap{justify-items:end}
+.card{width:min(26rem,100%);padding:1.6rem 1.8rem 1.5rem;transform-origin:50% 0;opacity:0;transform:rotateX(-80deg) translateY(-40px);transition:opacity .6s,transform 1s cubic-bezier(.2,.9,.25,1.15)}
+.chapter.on .card{opacity:1;transform:rotate(-1.2deg)}
+.chapter.right.on .card{transform:rotate(1.2deg)}
+.card h2{font-family:var(--display);font-weight:400;font-size:clamp(2rem,5vw,2.9rem);line-height:1;margin:0 0 .6rem}
+.card .eq{font-family:var(--math);font-style:italic;font-size:clamp(1.3rem,3.4vw,1.75rem);color:var(--red);margin:0 0 .5rem}
+.card .note{margin:0;color:var(--ink-soft)}
+
+.minimap{position:fixed;left:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));z-index:5;padding:6px;opacity:0;transform:translateY(20px) rotate(-3deg);transition:opacity .6s,transform .6s;pointer-events:none}
+body.sailing.deep .minimap{opacity:1;transform:rotate(-3deg)}
+.minimap canvas{display:block;width:84px;height:118px}
+@media (max-width:760px){.minimap canvas{width:64px;height:90px}}
+
+.overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:calc(1.2rem + env(safe-area-inset-top,0px)) 1.2rem calc(1.2rem + env(safe-area-inset-bottom,0px));text-align:center;perspective:1200px}
+.overlay[hidden]{display:none}
+#gate{background:radial-gradient(circle,rgba(30,20,12,.55),rgba(20,13,7,.92))}
+#gate .card{opacity:1;transform:rotate(-1deg);padding:2.2rem 2.4rem}
+#gate h1{font-family:var(--display);font-weight:400;font-size:clamp(2.8rem,9vw,4.2rem);margin:0;line-height:1}
+#gate p{margin:.4rem 0 1.6rem;font-style:italic;color:var(--ink-soft)}
+#gate .loading{font-size:.95rem}
+.btn{font-family:var(--display);font-size:1.25rem;border:0;cursor:pointer;padding:.75rem 2rem;border-radius:999px;color:#F6E7C4;background:radial-gradient(circle at 35% 30%,#C83A2E,#8E1A13 70%);
+  box-shadow:0 4px 0 #5E0F0B,0 10px 22px rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,220,180,.15);transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #5E0F0B}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn:focus-visible,input:focus-visible{outline:3px solid var(--sea);outline-offset:3px}
+
+/* Surprise: no warning, it just slams in */
+#quiz{background:rgba(20,13,7,.55)}
+#quiz::before{content:"";position:fixed;inset:0;background:#FFF6DC;opacity:0;pointer-events:none}
+#quiz.show::before{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.quiz-card{width:min(40rem,100%);display:flex;flex-direction:column;align-items:center;gap:1rem;padding:1.6rem clamp(1rem,4vw,2.2rem);transform:scale(1.5) rotate(-6deg);opacity:0}
+#quiz.show .quiz-card{animation:slam .38s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes slam{to{opacity:1;transform:rotate(-.6deg)}}
+#quiz.show{animation:jolt .35s .1s}
+@keyframes jolt{25%{translate:-10px 6px}50%{translate:8px -5px}75%{translate:-5px 3px}}
+.quiz-top{display:flex;align-items:center;gap:1.1rem;text-align:left}
+.timer{position:relative;width:100px;height:100px;flex:none}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer .track{fill:none;stroke:rgba(58,35,18,.15);stroke-width:7}
+.timer .bar{fill:none;stroke:var(--ink);stroke-width:7;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0}
+.timer.low .bar{stroke:var(--red)}
+.timer .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:2.4rem}
+.timer.low .num{color:var(--red);animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.15)}}
+.q-lead{font-family:var(--display);font-size:clamp(1.9rem,5.5vw,2.8rem);line-height:1.02;margin:0}
+.question{font-size:clamp(1.1rem,3vw,1.35rem);margin:0;padding:1rem 1.2rem;border:1.5px dashed rgba(58,35,18,.45);border-radius:10px;width:100%}
+.answer-row{display:flex;gap:.6rem;width:100%}
+.answer-row input{flex:1;min-width:0;font-family:var(--body);font-size:1.25rem;padding:.7rem 1.1rem;border-radius:999px;border:1.5px solid rgba(58,35,18,.5);background:rgba(255,248,225,.6);color:var(--ink)}
+.answer-row[hidden],.choices[hidden]{display:none}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;width:100%}
+.choice{display:flex;align-items:center;gap:.7rem;text-align:left;font-family:var(--math);font-size:1.2rem;color:var(--ink);cursor:pointer;
+  padding:.75rem 1rem;border-radius:12px;border:1.5px solid rgba(58,35,18,.45);background:rgba(255,248,225,.65);transition:transform .12s,background .12s}
+.choice:hover{transform:translateY(-2px);background:rgba(255,248,225,.95)}
+.choice:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
+.choice .key{flex:none;display:grid;place-items:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--red);color:#F6E7C4;font-family:var(--display);font-size:1.05rem}
+@media (max-width:520px){.choices{grid-template-columns:1fr}}
+.msg{min-height:1.4em;margin:0;color:var(--red);font-style:italic}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{translate:-8px 0}40%,80%{translate:8px 0}}
+.rules{color:var(--ink-soft);font-size:1rem;margin:0;font-style:italic}
+#fsblock{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(20,13,7,.85);padding:1.2rem}
+#fsblock[hidden]{display:none}
+#fsblock .card{opacity:1;transform:none}
+#fsblock p{margin:0 0 1.2rem}
+
+#closed{z-index:80;background:var(--table);animation:burn 1.4s ease-out}
+@keyframes burn{from{background:radial-gradient(circle,rgba(255,140,40,.9),rgba(120,30,10,.8) 40%,var(--table) 80%)}}
+#closed h2{font-family:var(--display);font-weight:400;font-size:clamp(2.8rem,9vw,5rem);margin:0 0 .4rem;line-height:1;color:var(--paper)}
+#closed p{color:var(--paper-lo);margin:0;font-style:italic}
+
+#win{z-index:70;background:transparent;align-items:start;padding-top:calc(5svh + env(safe-area-inset-top,0px));pointer-events:none}
+#win .card{opacity:1;transform:rotate(-1deg);padding:1.3rem 2rem;width:min(40rem,100%);animation:unroll 1s cubic-bezier(.2,.9,.25,1.1)}
+@keyframes unroll{from{transform:scaleY(0) rotate(-1deg)}}
+#win h2{font-family:var(--display);font-weight:400;font-size:clamp(1.9rem,5vw,3.4rem);line-height:.98;margin:0}
+#win h2 .w{display:inline-block;opacity:0;transform:scale(1.8);filter:blur(5px);animation:ink .6s forwards;animation-delay:calc(.5s + var(--i) * 120ms)}
+#win .yay{font-family:var(--display);font-size:clamp(2.4rem,7vw,4.4rem);color:var(--red);margin:.3rem 0 0;line-height:1;opacity:0;transform:scale(0) rotate(-20deg);animation:stamp .6s 1.8s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes stamp{to{opacity:1;transform:rotate(-6deg)}}
+
+@media (max-width:760px){
+  .chapter .cap,.chapter.right .cap{justify-items:center;align-items:start;padding-top:7svh}
+  .answer-row{flex-direction:column}
+  .quiz-top{flex-direction:column;text-align:center;gap:.5rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .title .ch,body.go .title .ch,#win h2 .w,#win .yay{animation:none;opacity:1;transform:none;filter:none}
+  .card{transition:opacity .4s}
+  #quiz.show .quiz-card{animation:none;opacity:1;transform:none}
+  #quiz.show{animation:none}
+}
+</style>
+</head>
+<body class="locked">
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<main>
+  <section class="hero" id="hero">
+    <div class="title-wrap" id="titleWrap">
+      <h1 class="title" id="title" aria-label="Math Club Announces Its New Surprise"></h1>
+    </div>
+    <p class="hint parchment">Scroll to step into the map</p>
+  </section>
+
+  <section class="intro" id="intro" aria-hidden="true"></section>
+
+  <section class="chapter right" id="ch1" data-u="0.03">
+    <div class="cap"><div class="card parchment">
+      <h2>Shipwreck Beach</h2>
+      <p class="eq">a² + b² = c²</p>
+      <p class="note">The crabs walk the shore in right triangles. Follow the red line inland.</p>
+    </div></div>
+  </section>
+
+  <section class="chapter right" id="ch2" data-u="0.3">
+    <div class="cap"><div class="card parchment">
+      <h2>Golden Ratio Falls</h2>
+      <p class="eq">φ = (1 + √5) ⁄ 2</p>
+      <p class="note">The river splits the cliff in the ratio 1 : 1.618. Count the numbered stones beside the trail.</p>
+    </div></div>
+  </section>
+
+  <section class="chapter right" id="ch3" data-u="0.39">
+    <div class="cap"><div class="card parchment">
+      <h2>Temple of Pythagoras</h2>
+      <p class="eq">Fₙ = Fₙ₋₁ + Fₙ₋₂</p>
+      <p class="note">Each stone on the trail is the sum of the two before. The temple walls remember why.</p>
+    </div></div>
+  </section>
+
+  <section class="chapter" id="ch4" data-u="0.72">
+    <div class="cap"><div class="card parchment">
+      <h2>The Desert of Primes</h2>
+      <p class="eq">2, 3, 5, 7, 11, 13 …</p>
+      <p class="note">Every obelisk carries a number nothing else divides. The camels know the way.</p>
+    </div></div>
+  </section>
+
+  <section class="chapter right" id="ch5" data-u="0.905">
+    <div class="cap"><div class="card parchment">
+      <h2>Catenary Bridge</h2>
+      <p class="eq">y = a cosh(x ⁄ a)</p>
+      <p class="note">A hanging rope always takes this curve. Don’t look down.</p>
+    </div></div>
+  </section>
+
+  <section class="chapter" id="ch6" data-u="0.965">
+    <div class="cap"><div class="card parchment">
+      <h2>Cave of Euler</h2>
+      <p class="eq">e<sup>iπ</sup> + 1 = 0</p>
+      <p class="note">Five constants, one equation. The trail ends at the mouth of the mountain.</p>
+    </div></div>
+  </section>
+
+  <section class="finale" id="finale"></section>
+</main>
+
+<div class="minimap parchment" aria-hidden="true"><canvas id="mini" width="168" height="236"></canvas></div>
+
+<div class="overlay" id="gate">
+  <div class="card parchment">
+    <h1>Math Club</h1>
+    <p>This map opens in full screen.</p>
+    <button class="btn" id="enterBtn" disabled>Open the map</button>
+    <p class="loading" id="loading">Drawing the island…</p>
+  </div>
+</div>
+
+<div class="overlay" id="quiz" hidden role="dialog" aria-modal="true" aria-labelledby="qLead">
+  <div class="quiz-card parchment" id="quizCard">
+    <div class="quiz-top">
+      <div class="timer" id="timer">
+        <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52"/><circle class="bar" id="timerBar" cx="60" cy="60" r="52" pathLength="1"/></svg>
+        <div class="num" id="timerNum">30</div>
+      </div>
+      <p class="q-lead" id="qLead">Surprise! Answer this.</p>
+    </div>
+    <div class="question" id="questionText"></div>
+    <div class="answer-row">
+      <input id="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Your answer" aria-label="Your answer">
+      <button class="btn" id="submitBtn">Submit answer</button>
+    </div>
+    <div class="choices" id="choices" hidden></div>
+    <p class="msg" id="msg" aria-live="polite"></p>
+    <p class="rules" id="rules">30 seconds. One try. Leave and you’re out.</p>
+  </div>
+  <div id="fsblock" hidden>
+    <div class="card parchment"><p>Full screen was turned off. The timer is still running.</p><button class="btn" id="refsBtn">Return to full screen</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="correct" hidden>
+  <div class="card parchment"><h2>Correct.</h2><p>The map continues. Keep scrolling.</p></div>
+</div>
+
+<div class="overlay" id="closed" hidden>
+  <div><h2 id="closedTitle">Wrong answer.</h2><p id="closedNote">You’re out. This page is now closed.</p></div>
+</div>
+
+<div class="overlay" id="win" hidden>
+  <div class="card parchment">
+    <h2 id="winTitle"></h2>
+    <p class="yay">Yay!</p>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   EDIT HERE — question, answers and settings
+   ════════════════════════════════════════════════ */
+const CONFIG = {
+  // QUESTION BANK — one is picked at random each time the page loads.
+  //  • Typed question:  { question: "...", answers: ["accepted", "also accepted"] }
+  //    Spaces and capital letters are ignored, so "x = 9" and "X=9" both match "x=9".
+  //  • Multiple choice: { question: "...", choices: ["...", "...", "...", "..."], correct: 1 }
+  //    `correct` is the position of the right choice (0 = first). Choices are shuffled on screen.
+  questions: [
+    { question: "A <b>10&nbsp;m</b> ladder leans against a wall with its foot <b>6&nbsp;m</b> from the wall. The foot slips so it is now <b>8&nbsp;m</b> from the wall. How many metres did the <b>top</b> of the ladder slide down?",
+      answers: ["2", "2m", "2 m", "2 meters", "2 metres"] },
+    { question: "Solve for <i>x</i>:&nbsp;&nbsp;<b>5<i>x</i> − 2(<i>x</i> + 3) = 12</b>",
+      answers: ["6", "x=6", "x = 6"] },
+    { question: "What is the slope of the line through <b>(−2, 5)</b> and <b>(4, −7)</b>?",
+      answers: ["-2", "−2", "m=-2", "m=−2", "-2/1", "−2/1"] },
+    { question: "If &nbsp;<b><i>x</i> + <i>y</i> = 10</b>&nbsp; and &nbsp;<b><i>x</i> − <i>y</i> = 4</b>, what is <b><i>x</i> × <i>y</i></b>?",
+      answers: ["21", "xy=21", "x*y=21"] },
+    { question: "Which line is <b>perpendicular</b> to &nbsp;<b><i>y</i> = 2<i>x</i> + 3</b>&nbsp; and passes through <b>(4, 1)</b>?",
+      choices: ["<i>y</i> = −½<i>x</i> + 3", "<i>y</i> = −½<i>x</i> + 1", "<i>y</i> = 2<i>x</i> − 7", "<i>y</i> = ½<i>x</i> − 1"], correct: 0 },
+    { question: "A rectangle is <b>16&nbsp;cm</b> long and its diagonal is <b>20&nbsp;cm</b>. What is its <b>area</b>?",
+      choices: ["320 cm²", "192 cm²", "160 cm²", "240 cm²"], correct: 1 },
+  ],
+  seconds: 30,
+  // Ticking clock sound while the question is open.
+  tickSound: true,
+  // Where along the journey the surprise pops (0 = start, 1 = end). 0.45 is just past the temple.
+  triggerAt: 0.45,
+  // Leaving full screen, switching tabs, or clicking away to another window during the
+  // question closes it with "You have been caught cheating."
+  failOnTabLeave: true,
+  successTitle: "The Math Puzzle Hunt is now officially activated."
+};
+/* ════════════════════════════════════════════════ */
+
+const $ = id => document.getElementById(id);
+const body = document.body;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const small = Math.min(innerWidth, innerHeight) < 700;
+let state = 'gate'; // gate → browse → quiz → won (journey continues) → revealed | closed
+let lowTime = false;
+
+(function(){
+  const lines = ['Math Club', 'Announces Its', 'New Surprise']; let i = 0;
+  $('title').innerHTML = lines.map(l => '<span class="line" aria-hidden="true">' +
+    [...l].map(c => c === ' ' ? ' ' : `<span class="ch" style="--i:${i++}">${c}</span>`).join('') + '</span>').join('');
+})();
+
